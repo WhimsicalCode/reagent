@@ -95,3 +95,18 @@ as well as package name and line number. Returns x."
   `(assert (ifn? ~value)
            (str "Expected something callable, not "
                 (pr-str ~value))))
+
+(defmacro trace-render [f & forms]
+  (if (dev?)
+    `(if @reagent.debug/trace?
+       (let [start# (js/performance.now)]
+         (try
+           ~@forms
+           (finally
+             (swap! reagent.debug/renders
+                    update
+                    (.-name ~f)
+                    reagent.debug/update-trace
+                    start#))))
+       (do ~@forms))
+    `(do ~@forms)))

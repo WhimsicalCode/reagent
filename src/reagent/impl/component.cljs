@@ -6,7 +6,7 @@
             [reagent.ratom :as ratom]
             [reagent.interop :refer-macros [$ $!]]
             [reagent.debug :refer-macros [dbg prn dev? warn error warn-unless
-                                          assert-callable]]))
+                                          assert-callable trace-render]]))
 
 (declare ^:dynamic *current-component*)
 
@@ -96,17 +96,19 @@
   [c]
   (let [f ($ c :reagentRender)
         _ (assert-callable f)
-        res (if (true? ($ c :cljsLegacyRender))
-              (.call f c c)
-              (let [v (get-argv c)
-                    n (count v)]
-                (case n
-                  1 (.call f c)
-                  2 (.call f c (nth v 1))
-                  3 (.call f c (nth v 1) (nth v 2))
-                  4 (.call f c (nth v 1) (nth v 2) (nth v 3))
-                  5 (.call f c (nth v 1) (nth v 2) (nth v 3) (nth v 4))
-                  (.apply f c (.slice (into-array v) 1)))))]
+        res (trace-render
+              f
+              (if (true? ($ c :cljsLegacyRender))
+                (.call f c c)
+                (let [v (get-argv c)
+                      n (count v)]
+                  (case n
+                    1 (.call f c)
+                    2 (.call f c (nth v 1))
+                    3 (.call f c (nth v 1) (nth v 2))
+                    4 (.call f c (nth v 1) (nth v 2) (nth v 3))
+                    5 (.call f c (nth v 1) (nth v 2) (nth v 3) (nth v 4))
+                    (.apply f c (.slice (into-array v) 1))))))]
     (cond
       (vector? res) (as-element res)
       (ifn? res) (let [f (if (reagent-class? res)

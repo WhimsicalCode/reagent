@@ -1,5 +1,7 @@
 (ns reagent.debug
-  (:require-macros [reagent.debug]))
+  (:require [goog.string.format]
+            [goog.string :as gstring])
+  (:require-macros [reagent.debug :refer [log ]]))
 
 (def ^:const has-console (exists? js/console))
 
@@ -25,3 +27,29 @@
     (reset! warnings nil)
     (set! tracking false)
     warns))
+
+(defonce trace? (atom false))
+
+(defonce renders (atom nil))
+
+(defn reset-trace! [on?]
+  (reset! renders nil)
+  (reset! trace? on?))
+
+(defn update-trace [{:keys [t c] :or {:t 0 :c 0}} start]
+  {:t (+ t (- (js/performance.now) start))
+   :c (inc c)})
+
+(def format gstring/format)
+
+(defn log-renders
+  ([] (log-renders nil))
+  ([top-n]
+   (let [traces (->> @renders
+                     (map (fn [[name trace]] (assoc trace :n name)))
+                     (sort-by :t)
+                     (reverse))
+         traces (cond->> traces
+                         top-n (take top-n))]
+     (doseq [{:keys [n t c]} traces]
+       (log (format "%s Total Time: %.3f Avg Time: $.3f Count: %d" n t (/ t c) c))))))

@@ -1,4 +1,5 @@
 (ns reagent.debug
+  (:require [cljs.analyzer])
   (:refer-clojure :exclude [prn println time]))
 
 (defmacro log

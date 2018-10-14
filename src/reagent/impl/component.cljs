@@ -5,7 +5,7 @@
             [reagent.impl.batching :as batch]
             [reagent.ratom :as ratom]
             [reagent.debug :refer-macros [dbg prn dev? warn error warn-unless
-                                          assert-callable]]
+                                          assert-callable trace-render]]
             [goog.object :as gobj]))
 
 (declare ^:dynamic *current-component*)
@@ -14,73 +14,73 @@
 ;;; Argv access
 
 (defn shallow-obj-to-map [o]
-  (let [ks (js-keys o)
-        len (alength ks)]
-    (loop [m {}
-           i 0]
-      (if (< i len)
-        (let [k (aget ks i)]
-          (recur (assoc m (keyword k) (gobj/get o k))
-                 (inc i)))
-        m))))
+(let [ks (js-keys o)
+len (alength ks)]
+(loop [m {}
+i 0]
+(if (< i len)
+(let [k (aget ks i)]
+  (recur (assoc m (keyword k) (gobj/get o k))
+         (inc i)))
+m))))
 
 (defn extract-props [v]
-  (let [p (nth v 1 nil)]
-    (if (map? p) p)))
+(let [p (nth v 1 nil)]
+(if (map? p) p)))
 
 (defn extract-children [v]
-  (let [p (nth v 1 nil)
-        first-child (if (or (nil? p) (map? p)) 2 1)]
-    (if (> (count v) first-child)
-      (subvec v first-child))))
+(let [p (nth v 1 nil)
+first-child (if (or (nil? p) (map? p)) 2 1)]
+(if (> (count v) first-child)
+(subvec v first-child))))
 
 (defn props-argv [c p]
-  (if-some [a (.-argv p)]
-    a
-    [(.-constructor c) (shallow-obj-to-map p)]))
+(if-some [a (.-argv p)]
+a
+[(.-constructor c) (shallow-obj-to-map p)]))
 
 (defn get-argv [c]
-  (props-argv c (.-props c)))
+(props-argv c (.-props c)))
 
 (defn get-props [c]
-  (let [p (.-props c)]
-    (if-some [v (.-argv p)]
-      (extract-props v)
-      (shallow-obj-to-map p))))
+(let [p (.-props c)]
+(if-some [v (.-argv p)]
+(extract-props v)
+(shallow-obj-to-map p))))
 
 (defn get-children [c]
-  (let [p (.-props c)]
-    (if-some [v (.-argv p)]
-      (extract-children v)
-      (->> (.-children p)
-           (react/Children.toArray)
-           (into [])))))
+(let [p (.-props c)]
+(if-some [v (.-argv p)]
+(extract-children v)
+(->> (.-children p)
+(react/Children.toArray)
+(into [])))))
 
 (defn ^boolean reagent-class? [c]
-  (and (fn? c)
-       (some? (some-> c (.-prototype) (.-reagentRender)))))
+(and (fn? c)
+(some? (some-> c (.-prototype) (.-reagentRender)))))
 
 (defn ^boolean react-class? [c]
-  (and (fn? c)
-       (some? (some-> c (.-prototype) (.-render)))))
+(and (fn? c)
+(some? (some-> c (.-prototype) (.-render)))))
 
 (defn ^boolean reagent-component? [c]
-  (some? (.-reagentRender c)))
+(some? (.-reagentRender c)))
 
 (defn cached-react-class [c]
-  (.-cljsReactClass c))
+(.-cljsReactClass c))
 
 (defn cache-react-class [c constructor]
-  (set! (.-cljsReactClass c) constructor))
+(set! (.-cljsReactClass c) constructor))
 
 
 ;;; State
 
 (defn state-atom [this]
-  (let [sa (.-cljsState this)]
-    (if-not (nil? sa)
-      sa
-      (set! (.-cljsState this) (ratom/atom nil)))))
+(let [sa (.-cljsState this)]
+(if-not (nil? sa)
+sa
+(set! (.-cljsState this) (ratom/atom nil)))))
 
 ;; avoid circular dependency: this gets set from template.cljs
 (defonce as-element nil)
@@ -89,7 +89,7 @@
 ;;; Rendering
 
 (defn wrap-render
-  "Calls the render function of the component `c`.  If result `res` evaluates to a:
+"Calls the render function of the component `c`.  If result `res` evaluates to a:
      1) Vector (form-1 component) - Treats the vector as hiccup and returns
         a react element with a render function based on that hiccup
      2) Function (form-2 component) - updates the render function to `res` i.e. the internal function
@@ -101,17 +101,19 @@
         ;; cljsLegacyRender tells if this calls was defined
         ;; using :render instead of :reagent-render
         ;; in that case, the :render fn is called with just `this` as argument.
-        res (if (true? (.-cljsLegacyRender c))
-              (.call f c c)
-              (let [v (get-argv c)
-                    n (count v)]
-                (case n
-                  1 (.call f c)
-                  2 (.call f c (nth v 1))
-                  3 (.call f c (nth v 1) (nth v 2))
-                  4 (.call f c (nth v 1) (nth v 2) (nth v 3))
-                  5 (.call f c (nth v 1) (nth v 2) (nth v 3) (nth v 4))
-                  (.apply f c (.slice (into-array v) 1)))))]
+        res (trace-render
+             f
+             (if (true? (.-cljsLegacyRender c))
+               (.call f c c)
+               (let [v (get-argv c)
+                     n (count v)]
+                 (case n
+                   1 (.call f c)
+                   2 (.call f c (nth v 1))
+                   3 (.call f c (nth v 1) (nth v 2))
+                   4 (.call f c (nth v 1) (nth v 2) (nth v 3))
+                   5 (.call f c (nth v 1) (nth v 2) (nth v 3) (nth v 4))
+                   (.apply f c (.slice (into-array v) 1))))))]
     (cond
       (vector? res) (as-element res)
       (ifn? res) (let [f (if (reagent-class? res)
@@ -190,18 +192,18 @@
     (fn shouldComponentUpdate [nextprops nextstate]
       (or util/*always-update*
           (this-as c
-                   ;; Don't care about nextstate here, we use forceUpdate
-                   ;; when only when state has changed anyway.
-                   (let [old-argv (.. c -props -argv)
-                         new-argv (.-argv nextprops)
-                         noargv (or (nil? old-argv) (nil? new-argv))]
-                     (cond
-                       (nil? f) (or noargv (try (not= old-argv new-argv)
-                                                (catch :default e
-                                                  (warn "Exception thrown while comparing argv's in shouldComponentUpdate: " old-argv " " new-argv " " e)
-                                                  false)))
-                       noargv (.call f c c (get-argv c) (props-argv c nextprops))
-                       :else  (.call f c c old-argv new-argv))))))
+            ;; Don't care about nextstate here, we use forceUpdate
+            ;; when only when state has changed anyway.
+            (let [old-argv (.. c -props -argv)
+                  new-argv (.-argv nextprops)
+                  noargv (or (nil? old-argv) (nil? new-argv))]
+              (cond
+                (nil? f) (or noargv (try (not= old-argv new-argv)
+                                         (catch :default e
+                                           (warn "Exception thrown while comparing argv's in shouldComponentUpdate: " old-argv " " new-argv " " e)
+                                           false)))
+                noargv (.call f c c (get-argv c) (props-argv c nextprops))
+                :else  (.call f c c old-argv new-argv))))))
 
     ;; Deprecated - warning in 16.9 will work through 17.x
     :componentWillUpdate
@@ -239,10 +241,10 @@
     :componentWillUnmount
     (fn componentWillUnmount []
       (this-as c
-               (some-> (gobj/get c "cljsRatom") ratom/dispose!)
-               (batch/mark-rendered c)
-               (when-not (nil? f)
-                 (.call f c c))))
+        (some-> (gobj/get c "cljsRatom") ratom/dispose!)
+        (batch/mark-rendered c)
+        (when-not (nil? f)
+          (.call f c c))))
 
     :componentDidCatch
     (fn componentDidCatch [error info]

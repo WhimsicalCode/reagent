@@ -99,7 +99,7 @@ as well as package name and line number. Returns x."
 (defmacro trace-render [f & forms]
   (if (dev?)
     `(if @reagent.debug/trace?
-       (let [start# (js/performance.now)]
+       (let [start# (cljs.core/system-time)]
          (try
            ~@forms
            (finally

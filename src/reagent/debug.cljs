@@ -36,7 +36,7 @@
   (reset! renders nil)
   (reset! trace? on?))
 
-(defn update-trace [{:keys [t c] :or {:t 0 :c 0}} start]
+(defn update-trace [{:keys [t c] :or {t 0 c 0}} start]
   {:t (+ t (- (js/performance.now) start))
    :c (inc c)})
 

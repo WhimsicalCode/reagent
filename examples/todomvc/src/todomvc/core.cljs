@@ -1,5 +1,7 @@
 (ns todomvc.core
-  (:require [reagent.core :as r]))
+  (:require [reagent.core :as r]
+            [reagent.dom :as rdom]
+            [clojure.string :as str]))
 
 (defonce todos (r/atom (sorted-map)))
 
@@ -28,7 +30,7 @@
   (let [val (r/atom title)
         stop #(do (reset! val "")
                   (if on-stop (on-stop)))
-        save #(let [v (-> @val str clojure.string/trim)]
+        save #(let [v (-> @val str str/trim)]
                 (if-not (empty? v) (on-save v))
                 (stop))]
     (fn [{:keys [id class placeholder]}]
@@ -42,7 +44,7 @@
                                nil)}])))
 
 (def todo-edit (with-meta todo-input
-                 {:component-did-mount #(.focus (r/dom-node %))}))
+                 {:component-did-mount #(.focus (rdom/dom-node %))}))
 
 (defn todo-stats [{:keys [filt active done]}]
   (let [props-for (fn [name]
@@ -105,5 +107,4 @@
           [:p "Double-click to edit a todo"]]]))))
 
 (defn ^:export run []
-  (r/render [todo-app]
-            (js/document.getElementById "app")))
+  (rdom/render [todo-app] (js/document.getElementById "app")))

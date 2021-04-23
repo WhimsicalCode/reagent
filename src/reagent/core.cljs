@@ -7,8 +7,7 @@
             [reagent.impl.util :as util]
             [reagent.impl.batching :as batch]
             [reagent.ratom :as ratom]
-            [reagent.debug :as deb :refer-macros [dbg prn
-                                                  assert-some assert-component
+            [reagent.debug :as deb :refer-macros [assert-some assert-component
                                                   assert-js-object assert-new-state
                                                   assert-callable]]
             [reagent.dom :as dom]))
@@ -73,6 +72,7 @@
   Optionally takes a callback that is called when the component is in place.
 
   Returns the mounted component instance."
+  {:deprecated "0.10.0"}
   ([comp container]
    (dom/render comp container))
   ([comp container callback]
@@ -80,12 +80,9 @@
 
 (defn unmount-component-at-node
   "Remove a component from the given DOM node."
+  {:deprecated "0.10.0"}
   [container]
   (dom/unmount-component-at-node container))
-
-;; For backward compatibility
-(def as-component as-element)
-(def render-component render)
 
 (defn force-update-all
   "Force re-rendering of all mounted Reagent components. This is
@@ -97,6 +94,7 @@
   functions are passed by value, and not by reference, in
   ClojureScript). To get around this you'll have to introduce a layer
   of indirection, for example by using `(render [#'foo])` instead."
+  {:deprecated "0.10.0"}
   []
   (ratom/flush!)
   (dom/force-update-all)
@@ -213,6 +211,7 @@
 
 (defn dom-node
   "Returns the root DOM node of a mounted component."
+  {:deprecated "0.10.0"}
   [this]
   (dom/dom-node this))
 
@@ -239,7 +238,7 @@
   ([defaults props & others] (apply util/merge-props defaults props others)))
 
 (defn flush
-  "Render dirty components immediately to the DOM.
+  "Render dirty components immediately.
 
   Note that this may not work in event handlers, since React.js does
   batching of updates there."
@@ -356,17 +355,18 @@
   [a f & args]
   {:pre [(satisfies? IAtom a)
          (ifn? f)]}
-  (if a.rswapping
-    (-> (or a.rswapfs (set! a.rswapfs (array)))
+  (if (.-rswapping a)
+    (-> (or (.-rswapfs a)
+            (set! (.-rswapfs a) (array)))
         (.push #(apply f % args)))
-    (do (set! a.rswapping true)
+    (do (set! (.-rswapping a) true)
         (try (swap! a (fn [state]
                         (loop [s (apply f state args)]
-                          (if-some [sf (some-> a.rswapfs .shift)]
+                          (if-some [sf (some-> a .-rswapfs .shift)]
                             (recur (sf s))
                             s))))
              (finally
-               (set! a.rswapping false)))))
+               (set! (.-rswapping a) false)))))
   nil)
 
 (defn next-tick
@@ -388,10 +388,3 @@
   "Works just like clojure.core/partial, but the result can be compared with ="
   [f & args]
   (util/make-partial-fn f args))
-
-(defn component-path
-  ;; Try to return the path of component c as a string.
-  ;; Maybe useful for debugging and error reporting, but may break
-  ;; with future versions of React (and return nil).
-  [c]
-  (comp/component-path c))

@@ -3,10 +3,7 @@
             [reagent.impl.util :as util]
             [reagent.impl.template :as tmpl]
             [reagent.impl.batching :as batch]
-            [reagent.ratom :as ratom]
-            [reagent.debug :refer-macros [dbg]]))
-
-(defonce ^:private imported nil)
+            [reagent.ratom :as ratom]))
 
 (defonce ^:private roots (atom {}))
 
@@ -29,7 +26,8 @@
 
 (defn render
   "Render a Reagent component into the DOM. The first argument may be
-  either a vector (using Reagent's Hiccup syntax), or a React element. The second argument should be a DOM node.
+  either a vector (using Reagent's Hiccup syntax), or a React element.
+  The second argument should be a DOM node.
 
   Optionally takes a callback that is called when the component is in place.
 
@@ -42,7 +40,9 @@
              (tmpl/as-element (if (fn? comp) (comp) comp)))]
      (render-comp f container callback))))
 
-(defn unmount-component-at-node [container]
+(defn unmount-component-at-node
+  "Remove a component from the given DOM node."
+  [container]
   (unmount-comp container))
 
 (defn dom-node
@@ -66,4 +66,4 @@
   (ratom/flush!)
   (doseq [v (vals @roots)]
     (apply re-render-component v))
-  "Updated")
+  (batch/flush-after-render))

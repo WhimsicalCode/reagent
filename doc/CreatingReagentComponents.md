@@ -87,6 +87,26 @@ That isn't valid Hiccup and you'll get a slightly baffling error. You'll have to
      [:div name]])     ;; [:div] containing two nested [:divs]
 ```
 
+Alternatively, you could return a [React Fragment](https://reactjs.org/docs/fragments.html). In reagent, a React Fragment is created using the `:<>` Hiccup form.
+
+```cljs
+(defn right-component
+   [name]
+   [:<>
+     [:div "Hello"]
+     [:div name]])
+```
+
+Referring to the example in [React's documentation](https://reactjs.org/docs/fragments.html), the `Columns` component could be defined in reagent as:
+
+```cljs
+(defn columns
+  []
+  [:<>
+    [:td "Hello"]
+    [:td "World"]]
+```
+
 ## Form-2:  A Function Returning A Function
 
 Now, let's take one step up in complexity.  Sometimes, a component requires:
@@ -184,11 +204,11 @@ A `Form-3` component definition looks like this:
    [my-component 1 2 3]]) ;; Be sure to put the Reagent class in square brackets to force it to render!
 ```
 
-Note the `old-argv` above in the signature for `component-did-mount`.  Many of these Reagent lifecycle method analogs take `prev-argv` or `old-argv` (see the docstring for `reagent/create-class` for a full listing).  These `argv` arguments include the component constructor as the first argument, which should generally be ignored.  This is the same format returned by `(reagent/argv this)`.
+Note the `old-argv` above in the signature for `component-did-update`.  Many of these Reagent lifecycle method analogs take `prev-argv` or `old-argv` (see the docstring for `reagent/create-class` for a full listing).  These `argv` arguments include the component constructor as the first argument, which should generally be ignored.  This is the same format returned by `(reagent/argv this)`.
 
 Alternately, you can use `(reagent/props this)` and `(reagent/props children)`, but, conceptually, these don't map as clearly to the `argv` concept.  Specifically, the arguments to your render function are actually passed as children (not props) to the underlying React component, **unless the first argument is a map.**   If the first argument is a map, then that map is passed as props, and the rest of the arguments are passed as children.  Using `props` and `children` may read a bit cleaner, but you do need to pay attention to whether you're passing a props map or not.
 
-Finally, note that some react lifecycle methods take `prevState` and `nextState`.  Because Reagent provides its own state management system, there is no access to these parameters in the lifecycle methods.
+Finally, note that some React lifecycle methods take `prevState` and `nextState`.  Because Reagent provides its own state management system, there is no access to these parameters in the lifecycle methods.
 
 It is possible to create `Form-3` `components` using `with-meta`.  However, `with-meta` is a bit clumsy and has no advantages over the above method, but be aware that an alternative way exists to achieve the same outcome.
 
@@ -197,8 +217,6 @@ It is possible to create `Form-3` `components` using `with-meta`.  However, `wit
 In the code sample above, notice that the renderer function is identified via an odd keyword in the map given to `reagent/create-class`. It's called `:reagent-render` rather than the shorter, more obvious `:render`. 
 
 Its a trap to mistakenly use `:render` because you won't get any errors, **except** the function you supply will only ever be called with one parameter, and it won't be the one you expect. [Some details here](https://github.com/reagent-project/reagent/issues/47#issuecomment-61056999).
-
-**Note:** prior to version 0.5.0 you had to use the key `:component-function` instead of `:reagent-render`.
 
 **Rookie mistake**
 
@@ -214,7 +232,7 @@ Leaving out the `:display-name` entry.  If you leave it out, Reagent and React h
 
 Above I used the terms `Form-1`, `Form-2` and `Form-3`, but there's actually only one kind of component. It is just that there's **3 different ways to create a component**. 
 
-At the end of the day, no matter how it is created, a component will end up with a render function and some life-cycle methods.  A component created via `Form-1` has the same basic structure as one created via `Form-3` because underneath they are all just React components.
+At the end of the day, no matter how it is created, a component will end up with a render function and some life-cycle methods.  A component created via `Form-1` has the same basic structure as one created via `Form-3` because underneath they are all [just React components](https://betweentwoparens.com/what-the-reagent-component).
 
 ## Appendix A - Lifting the Lid Slightly
 

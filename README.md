@@ -1,7 +1,7 @@
 
 # Reagent
 
-![Reagent-Project](logo-rounded.jpg)
+![Reagent-Project](logo.png)
 
 A simple [ClojureScript](http://github.com/clojure/clojurescript) interface to [React](http://facebook.github.io/react/).
 
@@ -9,25 +9,24 @@ Reagent provides a way to write efficient React components using (almost) nothin
 
   * **[Detailed intro with live examples](http://reagent-project.github.io/)**
   * **[News](http://reagent-project.github.io/news/index.html)**
-  * **[API Documentation](http://reagent-project.github.io/docs/master/)**
-  * **[Tutorials and FAQ](https://github.com/reagent-project/reagent/tree/master/doc)**
+  * **[Documentation, 0.8](https://cljdoc.org/d/reagent/reagent/0.8.1/doc/documentation-index)**
+  * **Documentation, next release, 0.9**
+      * **[API docs](http://reagent-project.github.io/docs/master/)**
+      * **[Tutorials and FAQ](https://github.com/reagent-project/reagent/tree/master/doc)**
   * **Community discussion and support channels**
     * **[#reagent](https://clojurians.slack.com/messages/reagent/)** channel in [Clojure Slack](http://clojurians.net/)
     * **[Reagent Project Mailing List](https://groups.google.com/forum/#!forum/reagent-project)**
   * **Commercial video material**
     * [Learn Reagent Free](https://www.jacekschae.com/learn-reagent-free/tycit?coupon=REAGENT)
     * [Learn Reagent Pro](https://www.jacekschae.com/learn-reagent-pro/tycit?coupon=REAGENT) (Affiliate link, $30 discount)
+    * [Learn Re-frame Free](https://www.jacekschae.com/learn-re-frame-free/tycit?coupon=REAGENT)
+    * [Learn Re-frame Pro](https://www.jacekschae.com/learn-re-frame-pro/tycit?coupon=REAGENT) (Affiliate link, $30 discount)
     * [purelyfunctional.tv ](https://purelyfunctional.tv/guide/reagent/)
     * [Lambda Island Videos](https://lambdaisland.com/collections/react-reagent-re-frame)
 
-### Prerequisites
-
-* Java JDK
-* [Leiningen](http://leiningen.org/)
-
 ### Usage
 
-To create a new Reagent project simply run:
+To create a new Reagent project using [Leiningen](http://leiningen.org/) template simply run:
 
     lein new reagent myproject
 
@@ -42,13 +41,9 @@ To use Reagent in an existing project you add this to your dependencies in `proj
 [![Clojars Project](http://clojars.org/reagent/latest-version.svg)](http://clojars.org/reagent) <br>
 [![CircleCI](https://circleci.com/gh/reagent-project/reagent.svg?style=svg)](https://circleci.com/gh/reagent-project/reagent)
 
-This is all you need to do if you want the standard version of React. If you want the version of React with addons, you'd use something like this instead:
+This is all you need to do if you want the standard version of React. If you want to use your own build of React (or React from a CDN), you have to use `:exclusions` variant of the dependency, and also provide `react` and `react-dom` namespaces (by creating `.cljs` files with just `ns` form, or by adding your own `:foreign-libs` entries).
 
-    [reagent "0.7.0" :exclusions [cljsjs/react]]
-    [cljsjs/react-with-addons "15.4.2-2"]
-
-If you want to use your own build of React (or React from a CDN), you have to use `:exclusions` variant of the dependency, and also provide a file named "cljsjs/react.cljs", containing just `(ns cljsjs.react)`, in your project.
-
+    [reagent "0.x.x" :exclusions [cljsjs/react cljsjs/react-dom]]
 
 ## Examples
 

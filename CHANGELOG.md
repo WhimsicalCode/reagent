@@ -1,5 +1,74 @@
 # Changelog
 
+## 0.9.1 (2020-01-15)
+
+Removed broken untracked files from the package.
+
+## 0.9.0 (2020-01-15)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.8.1...v0.9.0)**
+
+**[compare against rc4](https://github.com/reagent-project/reagent/compare/v0.9.0-rc4...v0.9.0)**
+
+**Package includes broken files**
+
+Includes one small improvement, no fixes since rc4.
+
+- Include cursor path in `cursor` assert message ([#472](https://github.com/reagent-project/reagent/pull/472))
+
+## 0.9.0-rc4 (2019-12-17)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.9.0-rc3...v0.9.0-rc4)**
+
+Fixes the last known (this far) regression in 0.9.
+
+- Use Component constructor to keep track of component mount order for RAtom updates ([#462](https://github.com/reagent-project/reagent/pull/462))
+- Add support for the static [Class.contextType](https://reactjs.org/docs/context.html#classcontexttype) property ([#467](https://github.com/reagent-project/reagent/pull/467))
+
+## 0.9.0-rc3 (2019-11-19)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.9.0-rc2...v0.9.0-rc3)**
+
+Fixed a shortcoming of using JS interop forms introduced in 0.9.0-rc1:
+
+- Add type hints for JS interop calls, so that externs inference works for Shadow-CLJS and other users. ([#461](https://github.com/reagent-project/reagent/pull/461))
+
+## 0.9.0-rc2 (2019-10-17)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.9.0-rc1...v0.9.0-rc2)**
+
+Fixed two bugs introduced in 0.9.0-rc1.
+
+- Fix `gobj/set` call missing one parameter ([#454](https://github.com/reagent-project/reagent/issues/454), bug introduced by [#325](https://github.com/reagent-project/reagent/issues/325))
+- Fix logging missing `:key` errors where problematic form contains function literals ([#452](https://github.com/reagent-project/reagent/issues/452))
+
+## 0.9.0-rc1 (2019-09-10)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.8.1...v0.9.0-rc1)**
+
+- Default to React 16.9
+- Fix using `with-let` macro in namespaces with `*warn-on-infer*` enabled ([#420](https://github.com/reagent-project/reagent/issues/420))
+- Fix using metadata to set React key with Fragment shortcut (`:<>`) ([#401](https://github.com/reagent-project/reagent/issues/401))
+- Create React Component without `create-react-class` ([#416](https://github.com/reagent-project/reagent/issues/416))
+    - `React.Component` doesn't have `getInitialState` method, but this is implemented by
+    Reagent for compatibility with old components.
+    - `constructor` can be used to initialize components (e.g. set the state)
+- Allow any number of arguments for `reagent.core/merge-props` and
+ensure `:class` is merged correctly when it is defined as collection. ([#412](https://github.com/reagent-project/reagent/issues/412))
+- Add `reagent.core/class-names` utility functions which can be used
+to normalize and combine `:class` values (similar to `classnames` JS library)
+- Fix comparing Reagent `PartialFn` to `nil` ([#385](https://github.com/reagent-project/reagent/issues/385))
+- Reagent no longer abuses `aget` or `aset` for accessing objects, and instead
+uses correct Object interop forms, allowing use of ClojureScript `:checked-arrays :warn` option. ([#325](https://github.com/reagent-project/reagent/issues/325))
+- Deprecated `reagent.interop` namespace
+    - It is better to use proper object interop forms or `goog.object` functions instead.
+- Drop `:export` metadata from `force-update-all` function
+- `componentWillReceiveProps`, `componentWillUpdate` and `componentWillMount` lifecycle methods are deprecated
+    - Using these directly will show warning, using `UNSAFE_` prefixed version will silence the warning.
+    - These methods will continue to work with React 16.9 and 17.
+    - Reagent implementation has been changed to use `componentDidMount` instead of
+    `componentWillMount` to manage RAtoms.
+
 ## 0.8.1 (2018-05-15)
 
 **[compare](https://github.com/reagent-project/reagent/compare/v0.8.0...v0.8.1)**

@@ -1,14 +1,13 @@
 (ns reagenttest.testreagent
   (:require [cljs.test :as t :refer-macros [is deftest testing]]
             [react :as react]
-            [create-react-class :as create-react-class]
             [reagent.ratom :as rv :refer-macros [reaction]]
             [reagent.debug :as debug :refer-macros [dbg println log dev?]]
-            [reagent.interop :refer-macros [$ $!]]
             [reagent.core :as r]
             [reagent.dom.server :as server]
             [reagent.impl.util :as util]
             [reagenttest.utils :as u :refer [with-mounted-component found-in]]
+            [clojure.string :as string]
             [goog.string :as gstr]
             [goog.object :as gobj]
             [prop-types :as prop-types]))
@@ -29,6 +28,18 @@
 
 (defn rstr [react-elem]
   (server/render-to-static-markup react-elem))
+
+(defn log-error [& f]
+  (debug/error (apply str f)))
+
+(defn wrap-capture-console-error [f]
+  (fn []
+    (let [org js/console.error]
+      (set! js/console.error log-error)
+      (try
+        (f)
+        (finally
+          (set! js/console.error org))))))
 
 (deftest really-simple-test
   (when (and isClient
@@ -397,7 +408,7 @@
                  (swap! top-ran inc)
                  (r/create-class
                   {:component-did-mount #(swap! ran inc)
-                   :component-function
+                   :reagent-render
                    (fn [p a]
                      (is (= 1 a))
                      (swap! ran inc)
@@ -441,15 +452,18 @@
     (is (= (rstr (ae [:div [:div "foo"]]))
            (rstr (ae [:div (ce "div" nil "foo")]))))))
 
-(def ndiv (create-react-class
-            #js {:displayName "ndiv"
-                 :render
-                 (fn []
-                   (this-as
-                     this
-                     (r/create-element
-                       "div" #js{:className ($ this :props.className)}
-                       ($ this :props.children))))}))
+(def ndiv (let [cmp (fn [])]
+            (gobj/extend
+              (.-prototype cmp)
+              (.-prototype react/Component)
+              #js {:render (fn []
+                             (this-as
+                               this
+                               (r/create-element
+                                 "div" #js {:className (.. this -props -className)}
+                                 (.. this -props -children))))})
+            (gobj/extend cmp react/Component)
+            cmp))
 
 (deftest test-adapt-class
   (let [d1 (r/adapt-react-class ndiv)
@@ -535,11 +549,26 @@
              (for [i (range 3)]
                ^{:key i} [:p i (some-> a deref)])
              (for [i (range 3)]
-               [:p {:key i} i (some-> a deref)])])]
-    (with-mounted-component [c]
-      (fn [c div]
-        ;; Just make sure this doesn't print a debug message
-        ))))
+               [:p {:key i} i (some-> a deref)])])
+        w (debug/track-warnings
+            #(with-mounted-component [c]
+               (fn [c div])))]
+    (is (empty? (:warn w))))
+
+  (when r/is-client
+    (testing "Check warning text can be produced even if hiccup contains function literals"
+      (let [c (fn key-tester []
+                [:div
+                 (for [i (range 3)]
+                   ^{:key nil}
+                   [:button {:on-click #(js/console.log %)}])])
+            w (debug/track-warnings
+                (wrap-capture-console-error
+                  #(with-mounted-component [c]
+                     (fn [c div]))))]
+        (if (debug/dev?)
+          (is (= "Warning: Every element in a seq should have a unique :key: ([:button {:on-click #object[Function]}] [:button {:on-click #object[Function]}] [:button {:on-click #object[Function]}])\n (in reagenttest.testreagent.key_tester)"
+                 (first (:warn w)))))))))
 
 (deftest test-extended-syntax
   (is (= (rstr [:p>b "foo"])
@@ -739,7 +768,7 @@
               (reset! t (first args))
               (add-args :initial-state args)
               {:foo "bar"})
-            :component-will-mount
+            :UNSAFE_component-will-mount
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :will-mount args))
@@ -751,11 +780,11 @@
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :should-update args) true)
-            :component-will-receive-props
+            :UNSAFE_component-will-receive-props
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :will-receive args))
-            :component-will-update
+            :UNSAFE_component-will-update
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :will-update args))
@@ -793,11 +822,11 @@
                 (is (= (:should-update @res)
                        {:at 6 :args [@t [@comp "a" "b"] [@comp "a" "c"]]}))
                 (is (= (:will-update @res)
-                       {:at 7 :args [@t [@comp "a" "c"]]}))
+                       {:at 7 :args [@t [@comp "a" "c"] {:foo "bar"}]}))
                 (is (= (:render @res)
                        {:at 8 :args ["a" "c"]}))
                 (is (= (:did-update @res)
-                       {:at 9 :args [@t [@comp "a" "b"]]})))]
+                       {:at 9 :args [@t [@comp "a" "b"] {:foo "bar"} nil]})))]
     (when isClient
       (with-mounted-component [c2] check)
       (is (= (:will-unmount @res)
@@ -838,7 +867,7 @@
               (reset! oldprops (-> args first r/props))
               (add-args :initial-state args)
               {:foo "bar"})
-            :component-will-mount
+            :UNSAFE_component-will-mount
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :will-mount args))
@@ -850,14 +879,14 @@
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :should-update args) true)
-            :component-will-receive-props
+            :UNSAFE_component-will-receive-props
             (fn [& args]
               (reset! newprops (-> args second second))
               (this-as c
                        (is (= c (first args)))
                        (add-args :will-receive (into [(dissoc (r/props c) :children)]
                                                      (:children (r/props c))))))
-            :component-will-update
+            :UNSAFE_component-will-update
             (fn [& args]
               (this-as c (is (= c (first args))))
               (add-args :will-update args))
@@ -918,9 +947,6 @@
 (defn foo []
   [:div])
 
-(defn log-error [& f]
-  (debug/error (apply str f)))
-
 (defn wrap-capture-window-error [f]
   (if (exists? js/window)
     (fn []
@@ -941,15 +967,6 @@
           (f)
           (finally
             (.removeListener process "uncaughtException" l)))))))
-
-(defn wrap-capture-console-error [f]
-  (fn []
-    (let [org js/console.error]
-      (set! js/console.error log-error)
-      (try
-        (f)
-        (finally
-          (set! js/console.error org))))))
 
 (deftest test-err-messages
   (when (dev?)
@@ -990,7 +1007,13 @@
             comp4 (fn comp4 []
                     (for [i (range 0 1)]
                       [:p "foo"]))
-            nat (create-react-class #js {:render (fn [])})
+            nat (let [cmp (fn [])]
+                  (gobj/extend
+                    (.-prototype cmp)
+                    (.-prototype react/Component)
+                    #js {:render (fn [])})
+                  (gobj/extend cmp react/Component)
+                  cmp)
             pkg "reagenttest.testreagent."
             stack1 (str "in " pkg "comp1")
             stack2 (str "in " pkg "comp2 > " pkg "comp1")
@@ -1034,14 +1057,16 @@
   (let [error (r/atom nil)
         error-boundary (fn error-boundary [comp]
                          (r/create-class
-                           {:component-did-catch (fn [this e info]
-                                                   (reset! error e))
+                           {:component-did-catch (fn [this e info])
+                            :get-derived-state-from-error (fn [e]
+                                                            (reset! error e)
+                                                            #js {})
                             :reagent-render (fn [comp]
                                               (if @error
                                                 [:div "Something went wrong."]
                                                 comp))}))
         comp1 (fn comp1 []
-                  (throw (js/Error. "Test error")))]
+                (throw (js/Error. "Test error")))]
     (debug/track-warnings
       (wrap-capture-window-error
         (wrap-capture-console-error
@@ -1086,7 +1111,7 @@
                (let [old @spy]
                  (is (nil? (r/after-render
                             (fn []
-                              (is (= "DIV" ($ @node :tagName)))
+                              (is (= "DIV" (.-tagName @node)))
                               (swap! spy inc)))))
                  (is (= old @spy))
                  (is (= @exp @val))
@@ -1189,8 +1214,12 @@
                      [:div "hello"]
                      [:div "world"]]
                     ^{:key 2}
-                    [children])])]
-      (is (= "<div><div>hello</div><div>world</div><div>foo</div></div>"
+                    [children]
+                    ^{:key 3}
+                    [:<>
+                     [:div "1"]
+                     [:div "2"]])])]
+      (is (= "<div><div>hello</div><div>world</div><div>foo</div><div>1</div><div>2</div></div>"
              (as-string [comp]))))))
 
 (defonce my-context (react/createContext "default"))
@@ -1228,7 +1257,16 @@
            (rstr [:> Provider {:value "bar"}
                   [:> Consumer {}
                    (fn [v]
-                     (r/as-element [:div "Context: " v]))]])))))
+                     (r/as-element [:div "Context: " v]))]]))))
+
+  (testing "static contextType"
+    (let [comp (r/create-class
+                 {:context-type my-context
+                  :reagent-render (fn []
+                                    (this-as this
+                                      (r/as-element [:div "Context: " (.-context this)])))})]
+      (is (= "<div>Context: default</div>"
+             (rstr [comp]))))))
 
 (deftest on-failed-prop-comparison-in-should-update-swallow-exception-and-do-not-update-component
   (let [prop (r/atom {:todos 1})
@@ -1255,3 +1293,105 @@
                      (is (not @error-thrown-after-updating-props)))))]
         (is (re-find #"Warning: Exception thrown while comparing argv's in shouldComponentUpdate:"
                      (first (:warn e))))))))
+
+(deftest get-derived-state-from-props-test
+  (when isClient
+    (let [prop (r/atom 0)
+          ;; Usually one can use Cljs object as React state. However,
+          ;; getDerivedStateFromProps implementation in React uses
+          ;; Object.assign to merge current state and partial state returned
+          ;; from the method, so the state has to be plain old object.
+          pure-component (r/create-class
+                           {:constructor (fn [this]
+                                           (set! (.-state this) #js {}))
+                            :get-derived-state-from-props (fn [props state]
+                                                            ;; "Expensive" calculation based on the props
+                                                            #js {:v (string/join " " (repeat (inc (:value props)) "foo"))})
+                            :render (fn [this]
+                                      (r/as-element [:p "Value " (gobj/get (.-state this) "v")]))})
+          component (fn []
+                      [pure-component {:value @prop}])]
+      (with-mounted-component [component]
+        (fn [c div]
+          (is (found-in #"Value foo" div))
+          (swap! prop inc)
+          (r/flush)
+          (is (found-in #"Value foo foo" div)))))))
+
+(deftest get-derived-state-from-error-test
+  (when isClient
+    (let [prop (r/atom 0)
+          component (r/create-class
+                      {:constructor (fn [this props]
+                                      (set! (.-state this) #js {:hasError false}))
+                       :get-derived-state-from-error (fn [error]
+                                                       #js {:hasError true})
+                       :component-did-catch (fn [this e info])
+                       :render (fn [^js/React.Component this]
+                                 (r/as-element (if (.-hasError (.-state this))
+                                                 [:p "Error"]
+                                                 (into [:<>] (r/children this)))))})
+          bad-component (fn []
+                          (if (= 0 @prop)
+                            [:div "Ok"]
+                            (throw (js/Error. "foo"))))]
+      (wrap-capture-window-error
+        (wrap-capture-console-error
+          #(with-mounted-component [component [bad-component]]
+             (fn [c div]
+               (is (found-in #"Ok" div))
+               (swap! prop inc)
+               (r/flush)
+               (is (found-in #"Error" div)))))))))
+
+(deftest get-snapshot-before-update-test
+  (when isClient
+    (let [ref (react/createRef)
+          prop (r/atom 0)
+          did-update (atom nil)
+          component (r/create-class
+                      {:get-snapshot-before-update (fn [this [_ prev-props] prev-state]
+                                                     {:height (.. ref -current -scrollHeight)})
+                       :component-did-update (fn [this [_ prev-props] prev-state snapshot]
+                                               (reset! did-update snapshot))
+                       :render (fn [this]
+                                 (r/as-element
+                                   [:div
+                                    {:ref ref
+                                     :style {:height "20px"}}
+                                    "foo"]))})
+          component-2 (fn []
+                        [component {:value @prop}])]
+      (with-mounted-component [component-2]
+        (fn [c div]
+          ;; Attach to DOM to get real height value
+          (.appendChild js/document.body div)
+          (is (found-in #"foo" div))
+          (swap! prop inc)
+          (r/flush)
+          (is (= {:height 20} @did-update))
+          (.removeChild js/document.body div))))))
+
+(deftest issue-462-test
+  (when isClient
+    (let [val (r/atom 0)
+          render (atom 0)
+          a (fn issue-462-a [nr]
+              (swap! render inc)
+              [:h1 "Value " nr])
+          b (fn issue-462-b []
+              [:div
+               ^{:key @val}
+               [a @val]])
+          c (fn issue-462-c []
+              ^{:key @val}
+              [b])]
+      (with-mounted-component [c]
+        (fn [c div]
+          (is (= 1 @render))
+          (reset! val 1)
+          (r/flush)
+          (is (= 2 @render))
+          (reset! val 0)
+          (r/flush)
+          (is (= 3 @render)))))))

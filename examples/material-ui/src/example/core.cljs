@@ -1,15 +1,19 @@
 (ns example.core
   (:require [reagent.core :as r]
-            ;; FIXME: Needs some ClojureScript compiler fixes
-            ; ["@material-ui/core" :as mui]
-            ; ["@material-ui/core/styles" :refer [createMuiTheme]]
-            ; ["@material-ui/icons" :as mui-icons]
-            ["material-ui" :as mui]
-            ["material-ui/styles" :refer [createMuiTheme withStyles]]
-            ["material-ui/colors" :as mui-colors]
-            ["material-ui-icons" :as mui-icons]
+            ;; Scoped names require Cljs 1.10.439
+            ["@material-ui/core" :as mui]
+            ["@material-ui/core/styles" :refer [createMuiTheme withStyles]]
+            ["@material-ui/core/colors" :as mui-colors]
+            ["@material-ui/icons" :as mui-icons]
             [goog.object :as gobj]
             [reagent.impl.template :as rtpl]))
+
+(set! *warn-on-infer* true)
+
+(defn event-value
+  [^js/Event e]
+  (let [^js/HTMLInputElement el (.-target e)]
+    (.-value el)))
 
 ;; TextField cursor fix:
 
@@ -54,13 +58,13 @@
 
 (def custom-theme
   (createMuiTheme
-    #js {:palette #js {:primary #js {:main (gobj/get (.-red mui-colors) 100)}}}))
+    #js {:palette #js {:primary #js {:main (gobj/get (.-red ^js/Mui.Colors mui-colors) 100)}}}))
 
-(defn custom-styles [theme]
-  #js {:button #js {:margin (.. theme -spacing -unit)}
+(defn custom-styles [^js/Mui.Theme theme]
+  #js {:button #js {:margin (.spacing theme 1)}
        :textField #js {:width 200
-                       :marginLeft (.. theme -spacing -unit)
-                       :marginRight (.. theme -spacing -unit)}})
+                       :marginLeft (.spacing theme 1)
+                       :marginRight (.spacing theme 1)}})
 
 (def with-custom-styles (withStyles custom-styles))
 
@@ -71,7 +75,7 @@
   [:> mui/Grid
    {:container true
     :direction "column"
-    :spacing 16}
+    :spacing 2}
 
    [:> mui/Grid {:item true}
     [:> mui/Toolbar
@@ -100,7 +104,7 @@
       :helper-text "Helper text"
       :class (.-textField classes)
       :on-change (fn [e]
-                   (reset! text-state (.. e -target -value)))
+                   (reset! text-state (event-value e)))
       :inputRef #(js/console.log "input-ref" %)}]]
 
    [:> mui/Grid {:item true}
@@ -111,7 +115,7 @@
       :helper-text "Helper text"
       :class (.-textField classes)
       :on-change (fn [e]
-                   (reset! text-state (.. e -target -value)))
+                   (reset! text-state (event-value e)))
       :multiline true
       ;; TODO: Autosize textarea is broken.
       :rows 10}]]
@@ -124,7 +128,7 @@
       :helper-text "Helper text"
       :class (.-textField classes)
       :on-change (fn [e]
-                   (reset! text-state (.. e -target -value)))
+                   (reset! text-state (event-value e)))
       :select true}
      [:> mui/MenuItem
       {:value 1}
@@ -138,7 +142,7 @@
     [:> mui/Grid
      {:container true
       :direction "row"
-      :spacing 8}
+      :spacing 4}
 
      ;; For properties that require React Node as parameter,
      ;; either use r/as-element to convert Reagent hiccup forms into React elements,

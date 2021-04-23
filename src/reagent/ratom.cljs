@@ -4,7 +4,8 @@
   (:require [reagent.impl.util :as util]
             [reagent.debug :refer-macros [dbg log warn error dev? time]]
             [reagent.impl.batching :as batch]
-            [clojure.set :as s]))
+            [clojure.set :as s]
+            [goog.object :as obj]))
 
 (declare ^:dynamic *ratom-context*)
 (defonce ^boolean debug false)
@@ -46,7 +47,7 @@
 
    Inside '_update-watching' along with adding the ratoms in 'r.watching' of reaction,
    the reaction is also added to the list of watches on each ratoms f derefs."
-  [f r]
+  [f ^clj r]
   (set! (.-captured r) nil)
   (when (dev?)
     (set! (.-ratomGeneration r) (set! generation (inc generation))))
@@ -74,17 +75,17 @@
     (swap! -running + (- (count new) (count old))))
   new)
 
-(defn- add-w [this key f]
+(defn- add-w [^clj this key f]
   (let [w (.-watches this)]
     (set! (.-watches this) (check-watches w (assoc w key f)))
     (set! (.-watchesArr this) nil)))
 
-(defn- remove-w [this key]
+(defn- remove-w [^clj this key]
   (let [w (.-watches this)]
     (set! (.-watches this) (check-watches w (dissoc w key)))
     (set! (.-watchesArr this) nil)))
 
-(defn- notify-w [this old new]
+(defn- notify-w [^clj this old new]
   (let [w (.-watchesArr this)
         a (if (nil? w)
             ;; Copy watches to array for speed
@@ -187,10 +188,8 @@
 
 (declare make-reaction)
 
-(def ^{:private true :const true} cache-key "reagReactionCache")
-
-(defn- cached-reaction [f o k obj destroy]
-  (let [m (aget o cache-key)
+(defn- cached-reaction [f ^clj o k ^clj obj destroy]
+  (let [m (.-reagReactionCache o)
         m (if (nil? m) {} m)
         r (m k nil)]
     (cond
@@ -199,15 +198,15 @@
       :else (let [r (make-reaction
                      f :on-dispose (fn [x]
                                      (when debug (swap! -running dec))
-                                     (as-> (aget o cache-key) _
+                                     (as-> (.-reagReactionCache o) _
                                        (dissoc _ k)
-                                       (aset o cache-key _))
+                                       (set! (.-reagReactionCache o) _))
                                      (when (some? obj)
                                        (set! (.-reaction obj) nil))
                                      (when (some? destroy)
                                        (destroy x))))
                   v (-deref r)]
-              (aset o cache-key (assoc m k r))
+              (set! (.-reagReactionCache o) (assoc m k r))
               (when debug (swap! -running inc))
               (when (some? obj)
                 (set! (.-reaction obj) r))
@@ -223,7 +222,7 @@
       (cached-reaction #(apply f args) f args this nil)))
 
   IEquiv
-  (-equiv [_ other]
+  (-equiv [_ ^clj other]
     (and (instance? Track other)
          (= f (.-f other))
          (= args (.-args other))))
@@ -260,7 +259,7 @@
   IReactiveAtom
 
   IEquiv
-  (-equiv [_ other]
+  (-equiv [_ ^clj other]
     (and (instance? RCursor other)
          (= path (.-path other))
          (= ratom (.-ratom other))))
@@ -317,12 +316,14 @@
   (-hash [_] (hash [ratom path])))
 
 (defn cursor
-  [src path]
+  [^clj src path]
   (assert (or (satisfies? IReactiveAtom src)
               (and (ifn? src)
                    (not (vector? src))))
           (str "src must be a reactive atom or a function, not "
-               (pr-str src)))
+               (pr-str src)
+               " while attempting to get path: "
+               (pr-str path)))
   (->RCursor src path nil nil nil))
 
 
@@ -348,7 +349,7 @@
 (defprotocol IRunnable
   (run [this]))
 
-(defn- handle-reaction-change [this sender old new]
+(defn- handle-reaction-change [^clj this sender old new]
   (._handle-change this sender old new))
 
 ;; Fields of a Reaction javascript object
@@ -538,7 +539,7 @@
       (._set-opts r opts)
       (set! (.-f r) f)
       (set! (.-auto-run r) #(run obj))
-      (aset obj key r))
+      (obj/set obj key r))
     res))
 
 (defn check-derefs [f]
@@ -579,7 +580,7 @@
   (-swap! [a f x y more] (-reset! a (apply f state x y more)))
 
   IEquiv
-  (-equiv [_ other]
+  (-equiv [_ ^clj other]
           (and (instance? Wrapper other)
                ;; If either of the wrappers have changed, equality
                ;; cannot be relied on.

@@ -468,3 +468,11 @@
     (f)
     (is (= @spy false))
     (dispose r)))
+
+(def assert-enabled? (try (assert false)
+                          false
+                          (catch :default _ true)))
+
+(deftest cursor-assert-test
+  (when assert-enabled?
+    (is (thrown-with-msg? :default #"src must be a reactive atom or a function, not nil while attempting to get path: \[:foo :bar\]" (r/cursor nil [:foo :bar])))))

@@ -6,10 +6,12 @@
             [reagenttest.testtrack]
             [reagenttest.testwithlet]
             [reagenttest.testwrap]
+            [reagenttest.performancetest]
             [reagent.impl.template-test]
             [reagent.impl.util-test]
             [clojure.test :as test]
             [doo.runner :as doo :include-macros true]
+            [jx.reporter.karma :as karma]
             [reagent.core :as r]))
 
 (enable-console-print!)
@@ -38,14 +40,19 @@
 
 (defn test-output-mini []
   (let [res @test-results]
-    [:div {:style test-box-style
-           :on-click run-tests}
-     (if res
-       (if (zero? (+ (:fail res) (:error res)))
-         "All tests ok"
-         [:span "Test failure: "
-          (:fail res) " failures, " (:error res) " errors."])
-       "testing")]))
+    [:div
+     {:style test-box-style}
+     [:div {:on-click run-tests}
+      (if res
+        (if (zero? (+ (:fail res) (:error res)))
+          "All tests ok"
+          [:span "Test failure: "
+           (:fail res) " failures, " (:error res) " errors."])
+        "testing")]
+     [:button
+      {:on-click (fn [_e]
+                   (reagenttest.performancetest/test-create-element))}
+      "Run performance test"]]))
 
 (defn init! []
   ;; This function is only used when running tests from the demo app.
@@ -55,4 +62,12 @@
     (run-tests)
     [#'test-output-mini]))
 
+;; Macro which sets *main-cli-fn*
 (doo/doo-all-tests #"(reagenttest\.test.*|reagent\..*-test)")
+
+(defn ^:export karma-tests [karma]
+  (karma/run-all-tests karma #"(reagenttest\.test.*|reagent\..*-test)"))
+
+(when (exists? js/window)
+  (when-let [f (some-> js/window .-__karma__ .-loaded_real)]
+    (.loaded_real (.-__karma__ js/window))))

@@ -1,14 +1,13 @@
 (ns example.core
   (:require [reagent.core :as r]
             [reagent.dom :as rdom]
-            ;; FIXME: add global-exports support
-            [cljsjs.react-sortable-hoc]
+            [react-sortable-hoc :as sort]
             [goog.object :as gobj]))
 
 ;; Adapted from https://github.com/clauderic/react-sortable-hoc/blob/master/examples/drag-handle.js#L10
 
 (def DragHandle
-  (js/SortableHOC.SortableHandle.
+  (sort/SortableHandle.
     ;; Alternative to r/reactify-component, which doens't convert props and hiccup,
     ;; is to just provide fn as component and use as-element or create-element
     ;; to return React elements from the component.
@@ -16,7 +15,7 @@
       (r/as-element [:span "::"]))))
 
 (def SortableItem
-  (js/SortableHOC.SortableElement.
+  (sort/SortableElement.
     (r/reactify-component
       (fn [{:keys [value]}]
         [:li
@@ -27,7 +26,7 @@
 ;; props is JS object here
 #_
 (def SortableItem
-  (js/SortableHOC.SortableElement.
+  (sort/SortableElement.
     (fn [props]
       (r/as-element
         [:li
@@ -35,7 +34,7 @@
          (.-value props)]))))
 
 (def SortableList
-  (js/SortableHOC.SortableContainer.
+  (sort/SortableContainer.
     (r/reactify-component
       (fn [{:keys [items]}]
         [:ul
@@ -46,6 +45,19 @@
              #js {:key (str "item-" index)
                   :index index
                   :value value}))]))))
+
+;; Or using new :r> shortcut, which doesn't do props conversion
+#_
+(def SortableList
+  (sort/SortableContainer.
+    (r/reactify-component
+      (fn [{:keys [items]}]
+        [:ul
+         (for [[value index] (map vector items (range))]
+           [:r> SortableItem
+            #js {:key (str "item-" index)
+                 :index index
+                 :value value}])]))))
 
 (defn vector-move [coll prev-index new-index]
   (let [items (into (subvec coll 0 prev-index)

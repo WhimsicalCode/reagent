@@ -1,6 +1,149 @@
 # Changelog
 
+## 1.0.0 (2020-12-21)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.10.0...v1.0.0)**
+
+Special thanks for this release to [Clojurist Together](https://www.clojuriststogether.org/)
+for funding the work on React function components work and @roman01la for
+ideas on the implementation. Also thanks to everyone who tested the new features
+and reported results.
+
+Changes in this entry are compared to the 0.10.0 release.
+
+### Features and changes
+
+- **Option to render Reagent components as React function components instead of
+class components**
+    - To ensure backwards compatibility by default, Reagent works as previously and
+    by default creates class components.
+    - New Compiler object can be created and passed to functions to control
+    how Reagent converts Hiccup-style markup to React components and classes:
+    `(r/create-compiler {:function-components true})`
+    - This function components implementation supports RAtoms and passes
+    the same test suite as class components, except for a few differences.
+    - Passing this options to `render`, `as-element` and other calls will control how
+    that markup tree will be converted.
+    - `(r/set-default-compiler! compiler)` call can be used to set the default
+    compiler object for all calls.
+    - [Read more](./doc/ReagentCompiler.md)
+    - [Check example](./examples/functional-components-and-hooks/src/example/core.cljs)
+- Added `:f>` shortcut to create Function component from ClojureScript
+function, and `:r>` (raw) shortcut to use React components, without
+props conversion done by `:>`. Hiccup children are automatically
+converted to React element calls. ([#494](https://github.com/reagent-project/reagent/issues/494))
+- **DOM related functions have been removed from `reagent.core` namespace.**
+    - This is to make non-DOM environments (React-native) first class targets with Reagent,
+    as requiring `react-dom` causes problems in such environments.
+    - There is deprecated no-op `render` function on core ns, this will show
+    deprecation warning during compilation and throw runtime error about
+    function being moved. This should be easier to debug than just
+    warning about missing var and calling null fn on runtime. ([#501](https://github.com/reagent-project/reagent/issues/501))
+- Change RAtom (all types) print format to be readable using ClojureScript reader,
+similar to normal Atom ([#439](https://github.com/reagent-project/reagent/issues/439))
+    - Old print output: `#<Atom: 0>`
+    - New print output: `#object[clojure.ratom.RAtom {:val 0}]`
+    - Still not readable by default, requires custom reader for `object` tag.
+converted to React element calls. ([#494](https://github.com/reagent-project/reagent/issues/494))
+- Replaced `findDOMNode` use in Reagent input workaround with ref, to ensure
+[StrictMode](https://reactjs.org/docs/strict-mode.html) compatibility ([#490](https://reactjs.org/docs/strict-mode.html))
+    - Fix using ref object from `react/createRef` with controlled inputs ([#521](https://github.com/reagent-project/reagent/issues/521))
+- Update default React version to 17.0.1 ([#518](https://github.com/reagent-project/reagent/pull/518))
+
+### Bugfixes
+
+- Fixed merge-props adding `:class` property to result even if no argument
+defined `:class` ([#479](https://github.com/reagent-project/reagent/pull/479) by @achikin)
+- Fix using `:className` property together with keyword class shortcut ([#433](https://github.com/reagent-project/reagent/issues/433))
+- Fix incorrect missing React key warnings with `:>` ([#399](https://github.com/reagent-project/reagent/issues/399))
+- Fix `requestAnimationFrame` call in Firefox extension context ([#438](https://github.com/reagent-project/reagent/issues/438))
+
+
+### Documentation
+
+- New [react-mde example](./examples/react-mde/) by @vitorqb
+- Documentation fixes and improvements by:
+    - @dominicfreeston
+    - @MokkeMeguru
+    - @lucywang000
+    - @zelark
+    - @davidjameshumphreys
+    - @vgautamm
+    - @bjrnt
+    - @LeifAndersen
+    - @mikew1
+    - @suud
+    - @nahuel
+
+## 1.0.0-rc1 (2020-11-26)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v1.0.0-alpha2...v1.0.0-rc1)**
+
+- Update default React version to 17.0.1
+- DOM related functions have been removed from `reagent.core` namespace.
+    - There is deprecated no-op `render` function on core ns, this will show
+    deprecation warning during compilation and throw runtime error about
+    function being moved. This should be easier to debug than just
+    warning about missing var and calling null fn on runtime.
+
+## 1.0.0-alpha2 (2020-05-13)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v1.0.0-alpha1...v1.0.0-alpha2)**
+
+- Renamed `:functional-components?` option to `:function-components` ([#496](https://github.com/reagent-project/reagent/issues/496))
+- Added `:f>` shortcut to create Function component from ClojureScript
+function.
+- Added `:r>` (raw) shortcut to use React components, without
+props conversion done by `:>`. Hiccup children are automatically
+converted to React element calls. ([#494](https://github.com/reagent-project/reagent/issues/494))
+- Replaced `findDOMNode` use in Reagent input workaround with ref, to ensure
+[StrictMode](https://reactjs.org/docs/strict-mode.html) compatibility ([#490](https://reactjs.org/docs/strict-mode.html))
+
+## 1.0.0-alpha1 (2020-04-26)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.10.0...v1.0.0-alpha1)**
+
+The changes in this release are quite big and change lots of things in
+Reagent implementation, please test and report problems but it is probably good
+idea to wait for a bit before using this in production. There could be more
+changes before final version.
+
+### Features and changes
+
+- **Option to render Reagent components as React functional components instead of
+class components**
+    - To ensure backwards compatibility by default, Reagent works as previously and
+    by default creates class components.
+    - New Compiler object can be created and passed to functions to control
+    how Reagent converts Hiccup-style markup to React components and classes:
+    `(r/create-compiler {:functional-components? true})`
+    - This function components implementation supports RAtoms and passes
+    the same test suite as class components, except for a few differences.
+    - Passing this options to `render`, `as-element` and other calls will control how
+    that markup tree will be converted.
+    - `(r/set-default-compiler! compiler)` call can be used to set the default
+    compiler object for all calls.
+    - [Read more](./doc/ReagentCompiler.md)
+    - [Check example](./examples/functional-components-and-hooks/src/example/core.cljs)
+- DOM related functions have been removed from `reagent.core` namespace.
+    - These were deprecated in the previous release.
+- Change RAtom (all types) print format to be readable using ClojureScript reader,
+similar to normal Atom ([#439](https://github.com/reagent-project/reagent/issues/439))
+    - Old print output: `#<Atom: 0>`
+    - New print output: `#object[clojure.ratom.RAtom {:val 0}]`
+    - Still not readable by default, requires custom reader for `object` tag.
+
+### Bugfixes
+
+- Fixed merge-props adding `:class` property to result even if no argument
+defined `:class` ([#479](https://github.com/reagent-project/reagent/pull/479))
+- Fix using `:className` property together with keyword class shortcut ([#433](https://github.com/reagent-project/reagent/issues/433))
+- Fix incorrect missing React key warnings with `:>` ([#399](https://github.com/reagent-project/reagent/issues/399))
+- Fix `requestAnimationFrame` call in Firefox extension context ([#438](https://github.com/reagent-project/reagent/issues/438))
+
 ## 0.10.0 (2020-03-06)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.9.1...v0.10.0)**
 
 Main feature of this release is to deprecate functions that are going to be
 removed in the future releases, to make transition easier.
@@ -19,6 +162,8 @@ Instead one should use [an Error Boundary](https://reactjs.org/docs/error-bounda
 to catch the problem and look at the error information `componentStack` property.
 
 ## 0.9.1 (2020-01-15)
+
+**[compare](https://github.com/reagent-project/reagent/compare/v0.9.0...v0.9.1)**
 
 Removed broken untracked files from the package.
 

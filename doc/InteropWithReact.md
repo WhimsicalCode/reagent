@@ -64,7 +64,7 @@ Hiccup form:
   [(reagent/adapt-react-class FlipMove)
    {:duration 750
     :easing "ease-out"}
-   articles]
+   articles])
 ```
 
 There is also a convenience mechanism `:>` (colon greater-than) that shortens
@@ -75,7 +75,7 @@ this and avoid some parenthesis:
   [:> FlipMove
    {:duration 750
     :easing "ease-out"}
-   articles]
+   articles])
 ```
 
 This is the equivalent JavaScript:
@@ -191,3 +191,4 @@ to always put the call at the top, as in `my-div` here:
 
 - [Material-UI](../examples/material-ui/src/example/core.cljs)
 - [React-sortable-hoc](../examples/react-sortable-hoc/src/example/core.cljs)
+- [React-transition-group](../examples/react-transition-group/src/example/core.cljs)

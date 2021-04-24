@@ -36,7 +36,7 @@ The `:style` attribute can be written a string or as a map. The following two ar
 ```clojure
 [:div {:style "color: red; font-weight: bold"} "Alert"]
 [:div {:style {:color "red"
-               :font-weight "bold"}
+               :font-weight "bold"}}
       "Alert"]
 ```
 
@@ -112,7 +112,7 @@ can be written as:
 
 ## Rendering Hiccup
 
-The primary entrypoint to the reagent library is `reagent.core/render`.
+The primary entrypoint to the reagent library is `reagent.dom/render`.
 
 ```clojure
 (ns example

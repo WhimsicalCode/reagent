@@ -8,6 +8,8 @@
 6. [Batching and Timing: How Reagent Renders Changes to Application State](BatchingAndTiming.md)
 7. [Interop with React](InteropWithReact.md)
 8. [React Features](ReactFeatures.md) and how to use them in Reagent
+8. [Reagent Compiler](ReagentCompiler.md)
+8. [Controlled Inputs](ControlledInputs.md)
 
 Also:
   * [purelyfunctional.tv ](https://purelyfunctional.tv/guide/reagent/) - an excellent, written tutorial
@@ -32,7 +34,8 @@ Also:
 3. [Why is my attribute (like autoFocus) missing?](FAQ/MyAttributesAreMissing.md)
 4. [How can I use React's dangerouslySetInnerHTML?](FAQ/dangerouslySetInnerHTML.md)
 5. [Reagent doesn't work after updating dependencies](FAQ/CljsjsReactProblems.md)
-5. [How do I force Component re-creation?](https://groups.google.com/forum/#!topic/reagent-project/tNY4gzk7TUY) (external link)
+5. [How do I force Component re-creation?](FAQ/ForcingComponentRecreation.md)
+5. [Using HTML entities](FAQ/HtmlEntities.md)
 6. [How do I access "props" in lifecycle methods?](http://nils-blum-oeste.net/clojurescripts-reagent-using-props-in-lifecycle-hooks/) (external link)
 
 ## Examples

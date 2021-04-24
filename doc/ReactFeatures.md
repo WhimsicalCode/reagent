@@ -45,6 +45,11 @@ Reagent syntax follows [React Fragment short syntax](https://reactjs.org/docs/fr
   container)
 ```
 
+[Context example project](../examples/react-context/src/example/core.cljs)
+better explains how
+`:>` or `adapt-react-class` convert the properties to JS objects,
+and shows how to use Cljs values with context.
+
 Alternatively you can use the [static contextType property](https://reactjs.org/docs/context.html#classcontexttype)
 
 ```cljs
@@ -108,11 +113,11 @@ can be more obvious with the new `getDerivedStateFromError` method:
      :get-derived-state-from-error (fn [error] #js {:error error})
      :render (fn [this]
                (r/as-element
-                 (if @error
+                 (if-let [error (.. this -state -error)]
                    [:div
                     "Something went wrong."
                     [:button {:on-click #(.setState this #js {:error nil})} "Try again"]]
-                   (into [:<>] (r/children this)))})))
+                   comp)))}))
 ```
 
 As per React docs, `getDerivedStateFromError` is what should update the state
@@ -120,7 +125,33 @@ after error, it can be also used to update RAtom as in Reagent the Ratom is avai
 in function closure even for static methods. `ComponentDidCatch` can be used
 for side-effects, like logging the error.
 
+## [Function components](https://reactjs.org/docs/components-and-props.html#function-and-class-components)
+
+JavaScript functions are valid React components, but Reagent implementation
+by default turns the ClojureScript functions referred in Hiccup-vectors to
+Class components.
+
+However, some React features, like Hooks, only work with Functional components.
+There are several ways to use functions as components with Reagent:
+
+Calling `r/create-element` directly with a ClojureScript function doesn't
+wrap the component in any Reagent wrappers, and will create functional components.
+In this case you need to use `r/as-element` inside the function to convert
+Hiccup-style markup to elements, or just returns React Elements yourself.
+You also can't use Ratoms here, as Ratom implementation requires the component
+is wrapped by Reagent.
+
+Using `adapt-react-class` or `:>` is also calls `create-element`, but that
+also does automatic conversion of ClojureScript parameters to JS objects,
+which isn't usually desired if the component is ClojureScript function.
+
+New way is to configure Reagent Hiccup-compiler to create functional components:
+[Read Compiler documentation](./ReagentCompiler.md)
+
 ## [Hooks](https://reactjs.org/docs/hooks-intro.html)
+
+NOTE: This section still refers to workaround using Hooks inside
+class components, read the previous section to create functional components.
 
 Hooks can't be used inside class components, and Reagent implementation creates
 a class component from every function (i.e. Reagent component).
@@ -157,18 +188,50 @@ as properties into the React function component.
 
 ```cljs
 (defn reagent-component []
-  (r/create-class
-    {:render (fn [this]
-               (let [el (.. js/document (getElementById "portal-el"))]
-                 (react-dom/createPortal (r/as-element [:div "foo"]) el)))}))
-
+  (let [el (.. js/document (getElementById "portal-el"))]
+    (react-dom/createPortal (r/as-element [:div "foo"]) el)))
 ```
-
-TODO: Can this be done without create-class and `:render`.
-TODO: This might have problems handling Ratoms, test.
 
 ## [Hydrate](https://reactjs.org/docs/react-dom.html#hydrate)
 
 ```cljs
 (react-dom/hydrate (r/as-element [main-component]) container)
+```
+
+## Component classes
+
+For interop with React libraries, you might need to pass Component classes to other components as parameter. If you have a Reagent component (a function) you can use `r/reactify-component` which returns creates a Class from the function.
+
+If the parent Component awaits classes with some custom methods or properties, you need to be careful and probably should use `r/create-class`. In this case you don't want to use `r/reactify-component` with a function (even if the function returns a class) because `r/reactify-component` wraps the function in another Component class, and parent Component doesn't see the correct class.
+
+```cljs
+;; Correct way
+(def editor
+  (r/create-class
+    {:get-input-node (fn [this] ...)
+     :reagent-render (fn [] [:input ...])})))
+
+[:> SomeComponent
+ {:editor-component editor}]
+
+;; Often incorrect way
+(defn editor [parameter]
+  (r/create-class
+    {:get-input-node (fn [this] ...)
+     :reagent-render (fn [] [:input ...])})))
+
+[:> SomeComponent
+ {:editor-component (r/reactify-component editor)}]
+```
+
+In the latter case, `:editor-component` is a Reagent wrapper class component, which doesn't have the `getInputNode` method and is rendered using the Component created by `create-class` and which has the method.
+
+
+If you need to add static methods or properties, you need to modify `create-class` return value yourself. The function handles the built-in static-methods (`:childContextTypes :contextTypes :contextType :getDerivedStateFromProps :getDerivedStateFromError`), but not others.
+
+```cljs
+(let [klass (r/create-class ...)]
+  (set! (.-static-property klass) "foobar")
+  (set! (.-static-method klass) (fn [param] ...))
+  klass)
 ```

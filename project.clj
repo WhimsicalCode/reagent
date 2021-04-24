@@ -1,15 +1,14 @@
-(defproject reagent "0.10.0"
+(defproject reagent "1.0.0"
   :url "http://github.com/reagent-project/reagent"
   :license {:name "MIT"}
   :description "A simple ClojureScript interface to React"
 
-  :dependencies [[org.clojure/clojure "1.10.1"]
-                 ;; If :npm-deps enabled, these are used only for externs.
+  :dependencies [;; If :npm-deps enabled, these are used only for externs.
                  ;; Without direct react dependency, other packages,
                  ;; like react-leaflet might have closer dependency to a other version.
-                 [cljsjs/react "16.13.0-0"]
-                 [cljsjs/react-dom "16.13.0-0"]
-                 [cljsjs/react-dom-server "16.13.0-0"]]
+                 [cljsjs/react "17.0.1-0"]
+                 [cljsjs/react-dom "17.0.1-0"]
+                 [cljsjs/react-dom-server "17.0.1-0"]]
 
   :plugins [[lein-cljsbuild "1.1.7"]
             [lein-doo "0.1.11"]
@@ -23,8 +22,10 @@
           :source-paths ["src"]
           :doc-paths []}
 
-  :profiles {:dev {:dependencies [[org.clojure/clojurescript "1.10.597"]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.10.1"]
+                                  [org.clojure/clojurescript "1.10.753"]
                                   [figwheel "0.5.19"]
+                                  [figwheel-sidecar "0.5.19"]
                                   [doo "0.1.11"]
                                   [cljsjs/prop-types "15.7.2-0"]]
                    :source-paths ["demo" "test" "examples/todomvc/src" "examples/simple/src" "examples/geometry/src"]
@@ -32,9 +33,12 @@
 
   :clean-targets ^{:protect false} [:target-path :compile-path "out"]
 
+  :repl-options {:init (do (require '[figwheel-sidecar.repl-api :refer :all]))}
+
   :figwheel {:http-server-root "public" ;; assumes "resources"
              :css-dirs ["site/public/css"]
-             :repl false}
+             :repl true
+             :nrepl-port 27397}
 
   ;; No profiles and merging - just manual configuration for each build type.
   ;; For :optimization :none ClojureScript compiler will compile all
@@ -69,7 +73,8 @@
                 :output-to "target/cljsbuild/client-npm/public/js/main.js"
                 :npm-deps true
                 :asset-path "js/out"
-                :checked-arrays :warn}}
+                :checked-arrays :warn
+                :language-out :es5}}
 
     {:id "test"
      :source-paths ["test"]
@@ -94,7 +99,8 @@
                 :output-to "target/cljsbuild/test-npm/main.js"
                 :npm-deps true
                 :aot-cache true
-                :checked-arrays :warn}}
+                :checked-arrays :warn
+                :language-out :es5}}
 
     ;; Separate source-path as this namespace uses Node built-in modules which
     ;; aren't available for other targets, and would break other builds.
@@ -159,7 +165,8 @@
                 :output-dir "target/cljsbuild/prod-npm/out" ;; Outside of public, not published
                 :closure-warnings {:global-this :off}
                 :npm-deps true
-                :aot-cache true}}
+                :aot-cache true
+                :language-out :es5}}
 
     {:id "prod-test"
      :source-paths ["test"]
@@ -186,4 +193,5 @@
                 :closure-warnings {:global-this :off}
                 :npm-deps true
                 :aot-cache true
-                :checked-arrays :warn}}]})
+                :checked-arrays :warn
+                :language-out :es5}}]})
